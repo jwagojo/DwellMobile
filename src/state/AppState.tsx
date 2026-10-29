@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import type { SyncStore } from '@/platform/storage';
 import { DEFAULT_CAR, EV_MODELS } from '@/shared/data/evFallbackSeed';
+import { SEEDED_LISTINGS } from '@/shared/data/seedListings';
 import { stashAccount, type AccountData, type StashResult } from '@/shared/state/accounts';
 import type { DwellBackend } from '@/shared/state/backend';
 import { BACKEND_STORAGE_KEY, DEFAULTS, loadSavedState, saveState, type Persisted } from '@/shared/state/persisted';
@@ -31,7 +32,7 @@ interface AppContextValue extends Persisted {
   signOut: (opts?: { force?: boolean }) => SignOutResult;
   /** Prototype: start a session for an account that sign-in has already verified. */
   signIn: (data: AccountData) => void;
-  /** Backend: active listings from the API. Prototype: the account's own listing. */
+  /** Backend: active listings from the API. Prototype: the account's own listing plus the 34 seeded samples. */
   listings: Listing[];
   /** The driver's car, or a default for hosts previewing search */
   activeCar: Car;
@@ -200,11 +201,11 @@ export function AppStateProvider({
       update,
       signOut,
       signIn,
+      // Prototype: the web shows only the account's own listing. The app adds the 34 sample listings that are seeded
+      // into the backend, so offline search has chargers to find (MIGRATION_PROMPT.md, offline-first).
       listings: backend
         ? uniqueById([remote.bookingListing, state.hostListing, ...remote.listings])
-        : state.hostListing
-          ? [state.hostListing]
-          : [],
+        : uniqueById([state.hostListing, ...SEEDED_LISTINGS]),
       // No car chosen yet: price for the default model, using the car list's newest version of it when there is one.
       activeCar: state.car ?? cars.find((c) => c.make && `${c.make} ${c.model}`.toLowerCase() === DEFAULT_CAR.name.toLowerCase()) ?? DEFAULT_CAR,
       cars,

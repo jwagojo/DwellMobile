@@ -16,20 +16,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, displayTracking, fonts, radius, space, text } from '@/theme';
-import { Warn } from './Icons';
+import { Info, Plug, Warn } from './Icons';
 
 /* Ports of the web's spec §4.2 buttons and §4.4 form primitives (src/components/ui.tsx, form.tsx). */
 
 /* ---------- Screen ---------- */
 
 /** Paper background, safe areas, scrolling, and the keyboard pushing the form up instead of covering it. */
-export function Screen({ children, header, scroll = true }: { children: ReactNode; header?: ReactNode; scroll?: boolean }) {
+export function Screen({ children, header, scroll = true, padded = true }: { children: ReactNode; header?: ReactNode; scroll?: boolean; padded?: boolean }) {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       {header}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scroll ? (
-          <ScrollView style={styles.surface} contentContainerStyle={styles.scrollBody} keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.surface} contentContainerStyle={padded ? styles.scrollBody : undefined} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
@@ -216,13 +216,77 @@ export function CheckboxCard({
   );
 }
 
-/* ---------- Notes ---------- */
+/** 44 px round − / + buttons around a value (web form.tsx Stepper). */
+export function Stepper({ label, value, min, max, onChange, format = String }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; format?: (n: number) => string }) {
+  const step = (d: number) => onChange(Math.min(max, Math.max(min, value + d)));
+  return (
+    <View style={styles.stepper}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Fewer ${label.toLowerCase()}`} accessibilityState={{ disabled: value <= min }} disabled={value <= min} onPress={() => step(-1)} style={[styles.stepBtn, value <= min && styles.dimmed]}>
+        <Text style={styles.stepSign}>−</Text>
+      </Pressable>
+      <Text style={styles.stepValue} accessibilityLabel={`${label}: ${format(value)}`} accessibilityLiveRegion="polite">
+        {format(value)}
+      </Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`More ${label.toLowerCase()}`} accessibilityState={{ disabled: value >= max }} disabled={value >= max} onPress={() => step(1)} style={[styles.stepBtn, value >= max && styles.dimmed]}>
+        <Text style={styles.stepSign}>+</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/* ---------- Pills (spec §4.3) ---------- */
+
+export function Pill({ selected, onPress, label }: { selected: boolean; onPress: () => void; label: string }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.pill, selected ? styles.pillOn : pressed && { backgroundColor: colors.brandTint, borderColor: colors.brand }]}
+    >
+      <Text style={[styles.pillText, selected && { color: colors.onInk }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function Segmented<T extends string | number>({ label, options, value, onChange }: { label: string; options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <View style={styles.segmented} accessibilityRole="radiogroup" accessibilityLabel={label}>
+      <Text style={styles.segLabel}>{label}</Text>
+      {options.map((o) => (
+        <Pill key={String(o.value)} label={o.label} selected={o.value === value} onPress={() => onChange(o.value)} />
+      ))}
+    </View>
+  );
+}
+
+/* ---------- Notes (spec §4.7) ---------- */
+
+export function InfoNote({ children }: { children: ReactNode }) {
+  return (
+    <View style={styles.info}>
+      <Info size={18} color={colors.muted} />
+      <Text style={styles.infoText}>{children}</Text>
+    </View>
+  );
+}
 
 export function WarnNote({ children }: { children: ReactNode }) {
   return (
     <View style={styles.warn} accessibilityRole="alert">
       <Warn size={16} color={colors.amberInk} />
       <Text style={styles.warnText}>{children}</Text>
+    </View>
+  );
+}
+
+export function FitNote({ tone, children }: { tone: 'green' | 'amber'; children: ReactNode }) {
+  const fg = tone === 'green' ? colors.greenInk : colors.amberInk;
+  return (
+    <View style={[styles.fit, { backgroundColor: tone === 'green' ? colors.greenBg : colors.amberBg }]}>
+      {tone === 'green' ? <Plug size={16} color={fg} /> : <Warn size={16} color={fg} />}
+      <Text style={[styles.fitText, { color: fg }]}>{children}</Text>
     </View>
   );
 }
@@ -290,4 +354,19 @@ const styles = StyleSheet.create({
 
   warn: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs, borderRadius: radius.card, backgroundColor: colors.amberBg, padding: 10 },
   warnText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: text.xs, lineHeight: 19, color: colors.amberInk },
+  info: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: radius.card, backgroundColor: colors.surface, padding: space.sm },
+  infoText: { flex: 1, fontFamily: fonts.body, fontSize: text.sm, lineHeight: 20, color: colors.body },
+  fit: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs, borderRadius: radius.card, padding: space.sm },
+  fitText: { flex: 1, fontFamily: fonts.bodyMedium, fontSize: text.sm, lineHeight: 20 },
+
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
+  stepSign: { fontFamily: fonts.bodySemibold, fontSize: 22, lineHeight: 24, color: colors.ink },
+  stepValue: { minWidth: 44, textAlign: 'center', fontFamily: fonts.bodySemibold, fontSize: text.md, color: colors.ink },
+
+  pill: { height: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, paddingHorizontal: space.sm, justifyContent: 'center' },
+  pillOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  pillText: { fontFamily: fonts.bodyMedium, fontSize: text.sm, color: colors.ink },
+  segmented: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space.xs },
+  segLabel: { fontFamily: fonts.bodyMedium, fontSize: text.xs, color: colors.muted },
 });

@@ -39,7 +39,20 @@ export const colors = {
   amberBg: '#F8E2CA',
   onInk: '#F8F5EA',
   onInkMuted: '#C5C6B0',
+
+  // Schematic fallback map (index.css --color-map-*)
+  mapLand: '#F0EBDB',
+  mapParks: '#C7E1B9',
+  mapWater: '#AFD5E4',
+  mapStreets: '#FAF8F1',
+  mapPlace: '#4D5D4C',
+  mapStation: '#223C28',
+  mapWaterLabel: '#265874',
+  mapFarBank: '#E8E5D3',
 } as const;
+
+/** Placeholder backgrounds for listings without a photo (index.css --color-photo-1..6). */
+export const photoTones = ['#E7DDC8', '#D4DFCB', '#E5E2CF', '#E7D4BF', '#D5E2D7', '#E7E2CB'] as const;
 
 /** Loaded in the root layout with expo-font. Vollkorn 600 for headings, Hanken Grotesk for everything else. */
 export const fonts = {

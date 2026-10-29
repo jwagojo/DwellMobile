@@ -73,6 +73,17 @@ const FILES = [
   'state/persisted.test.ts',
   'state/accounts.test.ts',
   'state/demoAccount.ts',
+  'lib/map.ts',
+];
+
+/**
+ * Files from outside the web app's src/, with where they land in src/shared/ and the import paths that move with
+ * them. The 34 sample listings are seed data on the web (written to DynamoDB, never imported by the app); the phone
+ * also uses them in offline mode so search has chargers without a backend.
+ */
+const EXTRA = [
+  { from: 'scripts/seed-data/listings.ts', to: 'data/seedListings.ts', paths: [["'../../src/types/listing'", "'../types/listing'"]] },
+  { from: 'scripts/seed-data/mockListings.json', to: 'data/mockListings.json', paths: [] },
 ];
 
 const args = process.argv.slice(2);
@@ -108,15 +119,22 @@ const transform = (rel, source) => {
   return text;
 };
 
+const jobs = [
+  ...FILES.map((rel) => ({ from: `src/${rel}`, to: rel, paths: [] })),
+  ...EXTRA,
+];
+
 let drift = 0;
-for (const rel of FILES) {
-  const source = readFileSync(join(webRoot, 'src', rel), 'utf8');
-  const header = `// Copied from the Dwell web app (jwagojo/Dwell src/${rel} @ ${commit}) by scripts/sync-shared.mjs.\n// Do not edit here: change the web file, then re-run the script.\n`;
-  const next = header + transform(rel, source);
-  const target = join(outRoot, rel);
+for (const { from, to, paths } of jobs) {
+  let text = transform(to, readFileSync(join(webRoot, from), 'utf8'));
+  for (const [a, b] of paths) text = text.split(a).join(b);
+  // JSON can't carry the header comment; it is copied as is.
+  const header = to.endsWith('.json') ? '' : `// Copied from the Dwell web app (jwagojo/Dwell ${from} @ ${commit}) by scripts/sync-shared.mjs.\n// Do not edit here: change the web file, then re-run the script.\n`;
+  const next = header + text;
+  const target = join(outRoot, to);
   if (check) {
     if (!existsSync(target) || body(readFileSync(target, 'utf8')) !== body(next)) {
-      console.log(`differs: src/shared/${rel}`);
+      console.log(`differs: src/shared/${to}`);
       drift++;
     }
     continue;
@@ -129,4 +147,4 @@ if (check) {
   console.log(drift === 0 ? `src/shared matches the web app @ ${commit}.` : `${drift} file(s) differ from the web app @ ${commit}. Run the script without --check.`);
   process.exit(drift === 0 ? 0 : 1);
 }
-console.log(`Copied ${FILES.length} files from ${webRoot} @ ${commit} into src/shared/.`);
+console.log(`Copied ${jobs.length} files from ${webRoot} @ ${commit} into src/shared/.`);

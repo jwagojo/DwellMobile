@@ -83,10 +83,10 @@ describe('AppStateProvider (prototype mode)', () => {
     expect(result.current.user).toBeNull();
   });
 
-  it('prices for the default car until one is chosen, and lists only the account’s own listing', async () => {
+  it('prices for the default car until one is chosen, and lists the seeded sample listings', async () => {
     const { result } = await setup();
     expect(result.current.activeCar.name).toBe('Nissan Leaf');
-    expect(result.current.listings).toEqual([]);
+    expect(result.current.listings).toHaveLength(34);
     expect(result.current.backend).toBeNull();
   });
 });
