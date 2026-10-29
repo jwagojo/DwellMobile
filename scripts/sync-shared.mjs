@@ -10,7 +10,8 @@
  * Each copy gets a header naming the source file and commit, and three mechanical rewrites: `import.meta.env.VITE_X`
  * becomes `process.env.EXPO_PUBLIC_X`, `import.meta.env.DEV` becomes `__DEV__`, and tests import `@jest/globals`
  * (with `jest` for `vi`) instead of `vitest`.
- * Files in src/shared/ that are not listed here (lib/mapbox.ts) are mobile versions and are never overwritten.
+ * Files in src/shared/ that are not listed here (lib/mapbox.ts, state/accounts.ts) are mobile versions and are
+ * never overwritten.
  * Phone-only code (storage, location, photos, upload) lives in src/platform/.
  */
 import { execFileSync } from 'node:child_process';
@@ -70,6 +71,8 @@ const FILES = [
   'state/backend.ts',
   'state/persisted.ts',
   'state/persisted.test.ts',
+  'state/accounts.test.ts',
+  'state/demoAccount.ts',
 ];
 
 const args = process.argv.slice(2);
