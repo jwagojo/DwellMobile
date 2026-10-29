@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
   type PressableProps,
+  type ScrollViewInstance,
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
@@ -23,13 +24,26 @@ import { Info, Plug, Warn } from './Icons';
 /* ---------- Screen ---------- */
 
 /** Paper background, safe areas, scrolling, and the keyboard pushing the form up instead of covering it. */
-export function Screen({ children, header, scroll = true, padded = true }: { children: ReactNode; header?: ReactNode; scroll?: boolean; padded?: boolean }) {
+export function Screen({
+  children,
+  header,
+  scroll = true,
+  padded = true,
+  scrollRef,
+}: {
+  children: ReactNode;
+  header?: ReactNode;
+  scroll?: boolean;
+  padded?: boolean;
+  /** For screens that jump back to the top (the wizard's steps) */
+  scrollRef?: Ref<ScrollViewInstance>;
+}) {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       {header}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {scroll ? (
-          <ScrollView style={styles.surface} contentContainerStyle={padded ? styles.scrollBody : undefined} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scrollRef} style={styles.surface} contentContainerStyle={padded ? styles.scrollBody : undefined} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
@@ -176,6 +190,69 @@ export function TextField({ label, hint, error, ...rest }: { label: string; hint
         style={[styles.input, { borderColor: error ? colors.amberInk : focused ? colors.brand : colors.muted }, focused && styles.inputFocused]}
       />
     </FieldShell>
+  );
+}
+
+/** Multi-line text (web form.tsx TextAreaField). */
+export function TextAreaField({ label, hint, error, ...rest }: { label: string; hint?: string; error?: string } & TextInputProps) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <FieldShell label={label} hint={hint} error={error}>
+      <TextInput
+        accessibilityLabel={label}
+        accessibilityHint={error ?? hint}
+        placeholderTextColor={colors.muted}
+        multiline
+        textAlignVertical="top"
+        {...rest}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[styles.input, styles.textarea, { borderColor: error ? colors.amberInk : focused ? colors.brand : colors.muted }, focused && styles.inputFocused]}
+      />
+    </FieldShell>
+  );
+}
+
+/** A labeled read-only value shaped like a field (the web's readOnly TextField). */
+export function ReadOnlyField({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <FieldShell label={label} hint={hint}>
+      <View style={[styles.input, styles.readOnly]} accessibilityLabel={`${label}: ${value}`}>
+        <Text style={styles.readOnlyText}>{value}</Text>
+      </View>
+    </FieldShell>
+  );
+}
+
+/** Radio cards (web form.tsx ChoiceGroup): one choice, each with an optional second line. */
+export function ChoiceGroup<T extends string>({ legend, options, value, onChange, error, columns = 2 }: { legend: string; options: { value: T; label: string; sub?: string }[]; value: T | null; onChange: (v: T) => void; error?: string; columns?: 1 | 2 }) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{legend}</Text>
+      <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel={legend}>
+        {options.map((o) => {
+          const selected = o.value === value;
+          return (
+            <Pressable
+              key={o.value}
+              accessibilityRole="radio"
+              accessibilityLabel={o.sub ? `${o.label}, ${o.sub}` : o.label}
+              accessibilityState={{ checked: selected }}
+              onPress={() => onChange(o.value)}
+              style={[styles.choice, { flexBasis: columns === 2 ? '47%' : '100%' }, selected ? styles.choiceOn : null]}
+            >
+              <Text style={styles.choiceLabel}>{o.label}</Text>
+              {o.sub ? <Text style={styles.choiceSub}>{o.sub}</Text> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+      {error ? (
+        <Text style={styles.error} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -332,6 +409,14 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   inputFocused: { borderWidth: 2, paddingHorizontal: 13 },
+  textarea: { height: 120, paddingTop: 12, paddingBottom: 12 },
+  readOnly: { backgroundColor: colors.surface, borderColor: colors.line, justifyContent: 'center' },
+  readOnlyText: { fontFamily: fonts.body, fontSize: text.md, color: colors.ink },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  choice: { flexGrow: 1, minHeight: 48, borderRadius: radius.card, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, paddingHorizontal: 14, paddingVertical: 10 },
+  choiceOn: { borderWidth: 2, borderColor: colors.brand, backgroundColor: colors.brandWash, paddingHorizontal: 13, paddingVertical: 9 },
+  choiceLabel: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.ink },
+  choiceSub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   hint: { fontFamily: fonts.body, fontSize: text.xs, lineHeight: 19, color: colors.muted },
   error: { fontFamily: fonts.bodyMedium, fontSize: text.xs, lineHeight: 19, color: colors.amberInk },
 

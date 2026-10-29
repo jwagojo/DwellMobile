@@ -1,6 +1,5 @@
-import ComingSoon from '@/components/ComingSoon';
-import { SIGNUP_FOR_HOSTING_PATH } from '@/shared/lib/hostEntry';
+import HostWizard from '@/components/host/HostWizard';
 
 export default function NewListing() {
-  return <ComingSoon title="List your charger" milestone="milestone 7" signedOutTo={SIGNUP_FOR_HOSTING_PATH} />;
+  return <HostWizard mode="new" />;
 }

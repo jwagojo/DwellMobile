@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle as SvgCircle, Path as SvgPath } from 'react-native-svg';
 
 import { LINE_STYLES } from '@/shared/data/transit';
 import type { Destination } from '@/shared/types/destination';
@@ -36,7 +37,19 @@ export function DestinationPin({ destination }: { destination: Destination }) {
   );
 }
 
-const shadow = { shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 3 };
+/** The host's charger pin (web map/PinPickerMap.tsx PinGlyph), anchored at its bottom tip. */
+export function HostPinGlyph() {
+  return (
+    <View aria-hidden pointerEvents="none">
+      <Svg width={36} height={46} viewBox="0 0 36 46">
+        <SvgPath d="M18 45C18 45 33 29.5 33 17.5C33 8.9 26.3 2 18 2C9.7 2 3 8.9 3 17.5C3 29.5 18 45 18 45Z" fill={colors.brand} stroke={colors.paper} strokeWidth={2.5} />
+        <SvgCircle cx={18} cy={17.5} r={6.5} fill={colors.paper} />
+      </Svg>
+    </View>
+  );
+}
+
+const shadow ={ shadowColor: colors.ink, shadowOpacity: 0.18, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 3 };
 
 const styles = StyleSheet.create({
   price: { height: 32, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.pill, borderWidth: 2, borderColor: colors.paper, backgroundColor: colors.ink, paddingHorizontal: 10, ...shadow },

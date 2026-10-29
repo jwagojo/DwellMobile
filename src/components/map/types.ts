@@ -10,6 +10,16 @@ export interface MapPin {
   title?: string;
 }
 
+export interface LivePinMapProps {
+  position: LatLng | null;
+  /** Where to start when there is no pin yet */
+  center: LatLng;
+  onMove: (p: LatLng) => void;
+  /** Bump to fly the camera to the pin (address chosen, GPS). Tapping must not recenter. */
+  recenterToken: number;
+  onFail?: (reason: string) => void;
+}
+
 export interface LiveMapProps {
   center: LatLng;
   zoom: number;

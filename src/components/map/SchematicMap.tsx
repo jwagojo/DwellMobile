@@ -34,14 +34,22 @@ const PLACES: { name: string; at: Pt }[] = [
 ];
 
 export type Project = (p: LatLng) => { x: number; y: number };
+/** Mobile addition: screen point back to a coordinate, for tapping the schematic to place a pin. */
+export type Unproject = (x: number, y: number) => LatLng;
 
-function makeProject(center: LatLng, w: number, h: number, zoom: number): Project {
+function makeProject(center: LatLng, w: number, h: number, zoom: number): { project: Project; unproject: Unproject } {
   const pxPerM = (h / VISIBLE_METERS_TALL) * zoom;
   const mPerDegLng = M_PER_DEG_LAT * Math.cos((center.lat * Math.PI) / 180);
-  return (p) => ({
-    x: w / 2 + (p.lng - center.lng) * mPerDegLng * pxPerM,
-    y: h / 2 - (p.lat - center.lat) * M_PER_DEG_LAT * pxPerM,
-  });
+  return {
+    project: (p) => ({
+      x: w / 2 + (p.lng - center.lng) * mPerDegLng * pxPerM,
+      y: h / 2 - (p.lat - center.lat) * M_PER_DEG_LAT * pxPerM,
+    }),
+    unproject: (x, y) => ({
+      lng: center.lng + (x - w / 2) / (mPerDegLng * pxPerM),
+      lat: center.lat - (y - h / 2) / (M_PER_DEG_LAT * pxPerM),
+    }),
+  };
 }
 
 /** The drawn map with a render-prop for overlays (absolutely positioned). Fills its parent. */
@@ -54,10 +62,10 @@ export function SchematicMap({
   center: LatLng;
   zoom?: number;
   showLabels?: boolean;
-  children?: (ctx: { project: Project; w: number; h: number }) => ReactNode;
+  children?: (ctx: { project: Project; unproject: Unproject; w: number; h: number }) => ReactNode;
 }) {
   const [{ w, h }, setSize] = useState({ w: 0, h: 0 });
-  const project = makeProject(center, w, h, zoom);
+  const { project, unproject } = makeProject(center, w, h, zoom);
   const pts = (line: Pt[]) =>
     line
       .map(([lat, lng]) => {
@@ -124,7 +132,7 @@ export function SchematicMap({
           </Svg>
         </View>
       )}
-      {w > 0 && children?.({ project, w, h })}
+      {w > 0 && children?.({ project, unproject, w, h })}
     </View>
   );
 }

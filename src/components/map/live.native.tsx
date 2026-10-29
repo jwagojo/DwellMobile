@@ -4,8 +4,8 @@ import { StyleSheet } from 'react-native';
 
 import type { GeoBounds } from '@/shared/lib/geo';
 import { MAP_STYLE_URL } from '@/shared/lib/map';
-import { DestinationPin, PricePin } from './pins';
-import type { LiveMapProps } from './types';
+import { DestinationPin, HostPinGlyph, PricePin } from './pins';
+import type { LiveMapProps, LivePinMapProps } from './types';
 
 /**
  * The live map on a phone: MapLibre Native with the same OpenFreeMap style as the web (no key). Expo Go doesn't
@@ -18,6 +18,39 @@ export const liveMapUnavailableReason: string | null =
 type MapLibreModule = typeof import('@maplibre/maplibre-react-native');
 let mapLibre: MapLibreModule | null = null;
 const loadMapLibre = (): MapLibreModule => (mapLibre ??= require('@maplibre/maplibre-react-native') as MapLibreModule);
+
+/** Host pin picker: tap the map to put the pin there. The camera flies to the pin whenever `recenterToken` changes. */
+export function LivePinMap({ position, center, onMove, recenterToken, onFail }: LivePinMapProps) {
+  const { Map, Camera, ViewAnnotation } = loadMapLibre();
+  const camera = useRef<import('@maplibre/maplibre-react-native').CameraRef>(null);
+  const start = position ?? center;
+  useEffect(() => {
+    if (recenterToken > 0 && position) camera.current?.flyTo({ center: [position.lng, position.lat], zoom: 17, duration: 600 });
+    // Only an explicit recenter moves the camera; tapping or nudging the pin must not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterToken]);
+  return (
+    <Map
+      style={StyleSheet.absoluteFill}
+      mapStyle={MAP_STYLE_URL}
+      accessibilityLabel="Map for placing your charger pin. Tap the map to move the pin there."
+      touchRotate={false}
+      touchPitch={false}
+      compass={false}
+      attribution
+      logo={false}
+      onDidFailLoadingMap={() => onFail?.('The map couldn’t load. Check your connection.')}
+      onPress={(e) => onMove({ lng: e.nativeEvent.lngLat[0], lat: e.nativeEvent.lngLat[1] })}
+    >
+      <Camera ref={camera} initialViewState={{ center: [start.lng, start.lat], zoom: position ? 17 : 12 }} />
+      {position ? (
+        <ViewAnnotation id="host-pin" lngLat={[position.lng, position.lat]} anchor="bottom">
+          <HostPinGlyph />
+        </ViewAnnotation>
+      ) : null}
+    </Map>
+  );
+}
 
 export function LiveMap({ center, zoom, interactive = true, destination, pins, selectedId, onSelect, onAreaChange, onFail, accessibilityLabel }: LiveMapProps) {
   const { Map, Camera, ViewAnnotation } = loadMapLibre();
