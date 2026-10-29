@@ -33,7 +33,25 @@
         }
       ],
       "expo-secure-store",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Dwell uses the camera for the arrival and pickup photos of the parking spot, and for photos of your charger when you list it.",
+          "photosPermission": "Dwell lets you choose photos of your driveway and charger for your listing, or a photo of the spot for a session.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Dwell uses your location to find chargers near you, to place your listing's pin, and to check you're at the car when you pick it up.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

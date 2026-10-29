@@ -46,6 +46,26 @@ export function NewBadge() {
   return <Text style={styles.newBadge}>New listing</Text>;
 }
 
+export function StatusDot({ children, tone = 'green' }: { children: ReactNode; tone?: 'green' | 'muted' }) {
+  return <Text style={[styles.status, { color: tone === 'green' ? colors.brand : colors.muted }]}>{children}</Text>;
+}
+
+export function PaidPill({ amount }: { amount: string }) {
+  return <Text style={styles.paid}>Paid {amount}</Text>;
+}
+
+/** Spec §4.11 stat tile. */
+export function StatTile({ label, value, tone = 'surface', big = false }: { label: string; value: string; tone?: 'surface' | 'green' | 'amber'; big?: boolean }) {
+  const bg = { surface: colors.surface, green: colors.greenBg, amber: colors.amberBg }[tone];
+  const fg = { surface: colors.ink, green: colors.greenInk, amber: colors.amberInk }[tone];
+  return (
+    <View style={[styles.tile, { backgroundColor: bg }]} accessibilityLabel={`${label}: ${value}`}>
+      <Text style={[styles.tileLabel, { color: tone === 'surface' ? colors.muted : fg }]}>{label}</Text>
+      <Text style={[styles.tileValue, { color: fg, fontSize: big ? 22 : 18 }]}>{value}</Text>
+    </View>
+  );
+}
+
 /**
  * A host photo, or the labeled placeholder when there is none or it fails to load (hotlinked photos can vanish).
  * Fills the size the parent gives it through `style`.
@@ -75,6 +95,11 @@ const styles = StyleSheet.create({
   green: { borderRadius: radius.pill, backgroundColor: colors.greenBg, paddingHorizontal: 10, paddingVertical: 4, fontFamily: fonts.bodySemibold, fontSize: text.xs, color: colors.greenInk, overflow: 'hidden' },
   level: { borderRadius: 3, backgroundColor: colors.paper, paddingHorizontal: space.xs, paddingVertical: 4, fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.ink, overflow: 'hidden' },
   newBadge: { borderRadius: radius.pill, backgroundColor: colors.brandTint, paddingHorizontal: 10, paddingVertical: 2, fontFamily: fonts.bodySemibold, fontSize: 12, color: colors.brand, overflow: 'hidden' },
+  status: { fontFamily: fonts.bodyMedium, fontSize: text.sm },
+  paid: { borderRadius: radius.pill, backgroundColor: colors.greenBg, paddingHorizontal: 10, paddingVertical: 4, fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.greenInk, overflow: 'hidden' },
+  tile: { flexGrow: 1, flexBasis: '45%', borderRadius: radius.card, padding: 14 },
+  tileLabel: { fontFamily: fonts.bodyMedium, fontSize: 12 },
+  tileValue: { fontFamily: fonts.bodySemibold, marginTop: 2 },
   photo: { overflow: 'hidden', borderRadius: radius.card },
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, padding: space.xs },
   placeholderText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.body, textAlign: 'center' },

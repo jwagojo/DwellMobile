@@ -155,9 +155,9 @@ describe('takePhoto', () => {
     }) as never;
 
   it('returns a resized JPEG data URL', async () => {
-    const resize = jest.fn(async (_uri: string, _width: number, _height: number) => 'QUJD');
+    const resize = jest.fn(async (_uri: string, _width: number, _height: number, _maxDim: number) => 'QUJD');
     expect(await takePhoto('camera', { picker: picker(), resize })).toEqual({ ok: true, dataUrl: 'data:image/jpeg;base64,QUJD' });
-    expect(resize).toHaveBeenCalledWith('file:///cam.jpg', 4000, 3000);
+    expect(resize).toHaveBeenCalledWith('file:///cam.jpg', 4000, 3000, 800);
   });
   it('separates a cancel from a refusal', async () => {
     expect(await takePhoto('library', { picker: picker() })).toMatchObject({ ok: false, reason: 'CANCELLED' });
