@@ -20,7 +20,8 @@ export type { LevelFilter, Persisted, User } from '@/shared/state/persisted';
 /** Why signing out stopped instead of removing the account's data. */
 export type SignOutProblem = 'NOT_REGISTERED' | 'STORAGE';
 export type SignOutResult = { ok: true } | { ok: false; reason: SignOutProblem };
-export type SyncResult = { ok: true } | { ok: false; message: string };
+/** `accountLoaded` says whether the profile itself loaded (only the listings or cars failed). */
+export type SyncResult = { ok: true } | { ok: false; message: string; accountLoaded: boolean };
 
 interface AppContextValue extends Persisted {
   update: (patch: Partial<Persisted>) => void;
@@ -86,18 +87,26 @@ export function AppStateProvider({
   storage,
   backend = null,
   loading = null,
+  startupError,
 }: {
   children: ReactNode;
   storage: SyncStore;
   backend?: DwellBackend | null;
   /** Shown while a saved backend session loads the account. */
   loading?: ReactNode;
+  /**
+   * Mobile addition. Shown when a saved backend session can't load the account at launch (no signal, server down),
+   * instead of quietly looking signed out like the web. `retry` tries again; `signOut` drops the saved session.
+   */
+  startupError?: (message: string, actions: { retry: () => void; signOut: () => void }) => ReactNode;
 }) {
   const [state, setState] = useState<Persisted>(() => (backend ? prefsOnly(load(storage, BACKEND_STORAGE_KEY)) : load(storage)));
   const [remote, setRemote] = useState<{ listings: Listing[]; bookingListing: Listing | null }>({ listings: [], bookingListing: null });
   const [cars, setCars] = useState<Car[]>(EV_MODELS);
   // With a saved session, wait for the account before rendering, so guarded screens don't bounce to sign-up.
   const [ready, setReady] = useState(() => !backend?.signedIn);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     try {
@@ -129,7 +138,7 @@ export function AppStateProvider({
         await backend.signOut();
         setState((s) => prefsOnly(s));
       }
-      return { ok: false, message: me.message };
+      return { ok: false, message: me.message, accountLoaded: false };
     }
     const [details, list, carList] = await Promise.all([
       me.data.booking ? backend.api.getBooking(me.data.booking.id) : Promise.resolve(null),
@@ -147,13 +156,21 @@ export function AppStateProvider({
       booking: serverBooking ? mergeBooking(serverBooking, s.booking) : null,
     }));
     setRemote({ listings: list.ok ? list.data.listings : [], bookingListing: details?.ok ? details.data.listing : null });
-    return list.ok ? { ok: true } : { ok: false, message: list.message };
+    return list.ok ? { ok: true } : { ok: false, message: list.message, accountLoaded: true };
   }, [backend]);
 
   useEffect(() => {
-    if (!backend?.signedIn) return;
-    void syncAccount().finally(() => setReady(true));
-  }, [backend, syncAccount]);
+    if (!backend?.signedIn || ready) return;
+    void syncAccount().then((r) => {
+      // Still signed in but the account didn't load: say so (when the app shows that screen) rather than
+      // rendering as signed out. A refused session was already signed out above, so it just continues.
+      if (!r.ok && !r.accountLoaded && backend.signedIn && startupError) return setLaunchError(r.message);
+      setLaunchError(null);
+      setReady(true);
+    });
+    // `startupError` is a render prop; a new one each render must not restart the load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend, syncAccount, attempt]);
 
   const applyBooking = useCallback((b: Booking) => setState((s) => ({ ...s, booking: mergeBooking(b, s.booking) })), []);
 
@@ -217,7 +234,26 @@ export function AppStateProvider({
     [state, remote, cars, update, signOut, signIn, backend, storage, syncAccount, applyBooking],
   );
 
-  if (!ready) return <>{loading}</>;
+  if (!ready) {
+    if (launchError && startupError) {
+      return (
+        <>
+          {startupError(launchError, {
+            retry: () => {
+              setLaunchError(null);
+              setAttempt((a) => a + 1);
+            },
+            signOut: () => {
+              void backend?.signOut();
+              setLaunchError(null);
+              setReady(true);
+            },
+          })}
+        </>
+      );
+    }
+    return <>{loading}</>;
+  }
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

@@ -16,6 +16,7 @@ import { createSecureSessionStore } from '@/platform/secureSession';
 import { hydrateStore, type SyncStore } from '@/platform/storage';
 import { DwellBackend } from '@/shared/state/backend';
 import { seedDemoAccount } from '@/shared/state/demoAccount';
+import { Button } from '@/components/ui';
 import { AppStateProvider } from '@/state/AppState';
 import { colors, fonts, text } from '@/theme';
 
@@ -47,6 +48,23 @@ function Loading({ label }: { label: string }) {
   );
 }
 
+/** A saved session couldn't load the account at launch. Nothing is lost: the session stays until they sign out. */
+function CantConnect({ message, onRetry, onSignOut }: { message: string; onRetry: () => void; onSignOut: () => void }) {
+  return (
+    <View style={styles.loading}>
+      <View style={styles.cantConnect}>
+        <Text style={styles.cantTitle} accessibilityRole="header">
+          Couldn’t reach Dwell
+        </Text>
+        <Text style={styles.loadingText}>{message}</Text>
+        <Text style={styles.loadingText}>You’re still signed in. Check your connection and try again.</Text>
+        <Button label="Try again" size="lg" block onPress={onRetry} />
+        <Button label="Sign out" variant="ghost" block onPress={onSignOut} />
+      </View>
+    </View>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Vollkorn_600SemiBold,
@@ -71,7 +89,12 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <AppStateProvider storage={booted.storage} backend={booted.backend} loading={<Loading label="Loading your account…" />}>
+      <AppStateProvider
+        storage={booted.storage}
+        backend={booted.backend}
+        loading={<Loading label="Loading your account…" />}
+        startupError={(message, { retry, signOut }) => <CantConnect message={message} onRetry={retry} onSignOut={signOut} />}
+      >
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper } }} />
       </AppStateProvider>
     </SafeAreaProvider>
@@ -80,5 +103,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.surface },
-  loadingText: { fontFamily: fonts.body, fontSize: text.md, color: colors.muted },
+  loadingText: { fontFamily: fonts.body, fontSize: text.md, lineHeight: 23, color: colors.muted },
+  cantConnect: { width: '100%', maxWidth: 420, paddingHorizontal: 24, gap: 12 },
+  cantTitle: { fontFamily: fonts.display, fontSize: 26, color: colors.ink },
 });

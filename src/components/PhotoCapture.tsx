@@ -84,7 +84,8 @@ const styles = StyleSheet.create({
   icon: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: fonts.bodySemibold, fontSize: text.md, color: colors.ink },
   reason: { fontFamily: fonts.body, fontSize: text.sm, lineHeight: 20, color: colors.body },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  // Wraps on the narrowest phones (320 px), where both don't fit on one line.
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space.md, rowGap: space.xs },
   button: { height: 48, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.lineStrong, backgroundColor: colors.paper, paddingHorizontal: 20, justifyContent: 'center' },
   buttonText: { fontFamily: fonts.bodyMedium, fontSize: text.md, color: colors.ink },
   link: { fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.ink, textDecorationLine: 'underline', textDecorationColor: colors.lineStrong },

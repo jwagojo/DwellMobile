@@ -1,5 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
-import { act, renderHook } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { act, render, renderHook } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import type { ReactNode } from 'react';
 
 import type { SyncStore } from '@/platform/storage';
@@ -90,3 +91,63 @@ describe('AppStateProvider (prototype mode)', () => {
     expect(result.current.backend).toBeNull();
   });
 });
+
+describe('AppStateProvider (backend, launching with a saved session)', () => {
+  const USER_ME = { user: USER, car: null, listing: null, booking: null };
+  const ok = <T,>(data: T) => ({ ok: true as const, status: 200, data });
+  const offline = { ok: false as const, status: 0, code: 'NETWORK', message: 'Couldn’t reach Dwell. Check your connection.', details: {} };
+
+  function fakeBackend(meResults: unknown[]) {
+    const me = [...meResults];
+    const backend = {
+      signedIn: true,
+      signOut: jest.fn(async () => {
+        backend.signedIn = false;
+      }),
+      api: {
+        getMe: jest.fn(async () => me.shift()),
+        getBooking: jest.fn(),
+        listListings: jest.fn(async () => ok({ listings: [] })),
+        listCars: jest.fn(async () => ok({ cars: [] })),
+        saveCar: jest.fn(),
+      },
+    };
+    return backend;
+  }
+
+  it('shows the can’t-connect screen instead of looking signed out, and Retry loads the account', async () => {
+    const backend = fakeBackend([offline, ok(USER_ME)]);
+    let actions: { retry: () => void; signOut: () => void } | null = null;
+    const startupError = (message: string, a: { retry: () => void; signOut: () => void }) => {
+      actions = a;
+      return <Text>{message}</Text>;
+    };
+    const screen = await render(
+      <AppStateProvider storage={memoryStore()} backend={backend as never} startupError={startupError}>
+        <Probe />
+      </AppStateProvider>,
+    );
+    expect(screen.getByText(offline.message)).toBeTruthy();
+    await act(async () => actions!.retry());
+    expect(screen.getByText(`Signed in as ${USER.name}`)).toBeTruthy();
+    expect(backend.api.getMe).toHaveBeenCalledTimes(2);
+  });
+
+  it('lets them sign out from that screen', async () => {
+    const backend = fakeBackend([offline]);
+    let actions: { retry: () => void; signOut: () => void } | null = null;
+    const screen = await render(
+      <AppStateProvider storage={memoryStore()} backend={backend as never} startupError={(m, a) => ((actions = a), <Text>{m}</Text>)}>
+        <Probe />
+      </AppStateProvider>,
+    );
+    await act(async () => actions!.signOut());
+    expect(backend.signOut).toHaveBeenCalled();
+    expect(screen.getByText('Signed out')).toBeTruthy();
+  });
+});
+
+function Probe() {
+  const { user } = useApp();
+  return <Text>{user ? `Signed in as ${user.name}` : 'Signed out'}</Text>;
+}
