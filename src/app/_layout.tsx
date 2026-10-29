@@ -1,3 +1,6 @@
+// First: the shared API client builds request URLs with `new URL(path, base)`, which React Native's URL lacks.
+import 'react-native-url-polyfill/auto';
+
 import { HankenGrotesk_400Regular, HankenGrotesk_500Medium, HankenGrotesk_600SemiBold, HankenGrotesk_700Bold } from '@expo-google-fonts/hanken-grotesk';
 import { Vollkorn_600SemiBold } from '@expo-google-fonts/vollkorn';
 import { useFonts } from 'expo-font';

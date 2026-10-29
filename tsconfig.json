@@ -16,5 +16,10 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  // Tests copied from the web app are typed for Vitest's loose vi.fn() and are typechecked there; Jest still runs them.
+  "exclude": [
+    "node_modules",
+    "src/shared/**/*.test.ts"
   ]
 }
