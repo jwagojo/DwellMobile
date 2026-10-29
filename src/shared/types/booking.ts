@@ -1,0 +1,44 @@
+// Copied from the Dwell web app (jwagojo/Dwell src/types/booking.ts @ 94fda61) by scripts/sync-shared.mjs.
+// Do not edit here: change the web file, then re-run the script.
+import type { Destination } from './destination';
+
+export type BookingStatus = 'RESERVED' | 'ACTIVE' | 'COMPLETED';
+
+export interface BookingResult {
+  pickupAt: number;
+  lateMinutes: number;
+  lateFee: number;
+  subtotal: number;
+  serviceFee: number;
+  total: number;
+  /** True when location was denied and the host must review the pickup photo */
+  flagged: boolean;
+  milesAdded: number;
+  solarShare: number | null;
+  co2Kg: number | null;
+  greenScore: number | null;
+}
+
+export interface Booking {
+  id: string;
+  listingId: string;
+  /** Midnight (local) of the booking day, epoch ms */
+  dayStart: number;
+  startHour: number;
+  hours: number;
+  /** Where the driver was heading, frozen at booking time; used for the transit-miles term of the Green Score. null if they booked without one. */
+  destination: Destination | null;
+  carName: string;
+  carKw: number | null;
+  /** Frozen at booking time so settlement cannot drift */
+  pEff: number;
+  pricePerHr: number;
+  total: number;
+  status: BookingStatus;
+  result?: BookingResult;
+  /** Photo data URLs and the pickup stage, kept on the booking so a reload mid-session loses nothing. Prototype only: photos move to S3 later. */
+  arrivalPhoto?: string | null;
+  pickupPhoto?: string | null;
+  /** The driver tapped "Pick up" and is on the pickup step */
+  pickupStarted?: boolean;
+}
